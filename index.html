@@ -310,7 +310,7 @@ ${vs}
 <label class="small" for="nm">Twoje imię</label><input id="nm" maxlength="20" placeholder="Kuba" autocomplete="off" style="width:100%;font:inherit;padding:10px;border:2px solid var(--ink);border-radius:4px;background:var(--paper);color:var(--ink);margin-top:4px">
 <p class="small" id="nerr" style="color:var(--red);min-height:18px;margin:4px 0 0"></p>
 <button class="primary" id="chal">Wyślij wyzwanie</button><textarea id="ctxt" rows="4" readonly hidden></textarea></section>
-<div class="ad" role="note">Miejsce na reklamę: tu, pod wynikiem, reklama ma najwięcej wyświetleń i nie przeszkadza w grze.</div>
+<!-- AD_SLOT: tu wstaw kod bloku reklamowego AdSense -->
 ${LIVE?"":`<p style="margin-top:14px"><button class="ghost" style="width:auto;padding:0 14px" id="again">Zagraj jeszcze raz (tylko w wersji demo)</button></p>`}`;
 const out=async(text,btn,ta,label)=>{try{if(navigator.share){await navigator.share({text});return}}catch(e){}
 try{await navigator.clipboard.writeText(text);btn.textContent=label;return}catch(e){}ta.value=text;ta.hidden=false;ta.select();btn.textContent="Skopiuj tekst poniżej"};
