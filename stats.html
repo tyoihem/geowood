@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Geowood – statystyki</title>
+<style>
+:root{--bg:#0d0f13;--paper:#171a20;--ink:#eef0f4;--muted:#9aa1ad;--line:#2a2e37;--red:#e0323b;--yellow:#ffd400;--green:#4cc47f;color-scheme:dark;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+header{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+h1{font-family:Anton,Impact,"Arial Narrow",sans-serif;font-weight:400;font-size:30px;margin:0}
+h1 span{background:var(--yellow);color:#15171c;padding:0 6px}
+h2{font-size:15px;font-weight:600;margin:0 0 10px;color:var(--muted)}
+.upd{font-size:13px;color:var(--muted)}
+.card{background:var(--paper);border-radius:8px;padding:16px}
+.live{display:flex;align-items:center;gap:20px;border-top:5px solid var(--red)}
+.big{font-family:Anton,Impact,sans-serif;font-size:72px;line-height:1}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(76,196,127,.6);animation:p 1.6s infinite}
+@keyframes p{70%{box-shadow:0 0 0 12px rgba(76,196,127,0)}100%{box-shadow:0 0 0 0 rgba(76,196,127,0)}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:12px 0}
+.k{font-size:13px;color:var(--muted)}
+.v{font-size:28px;font-weight:600;font-variant-numeric:tabular-nums}
+.sub{font-size:13px;color:var(--muted)}
+.two{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px}
+@media (max-width:800px){.two{grid-template-columns:minmax(0,1fr)}}
+.bars{display:flex;align-items:flex-end;gap:6px;height:180px;overflow-x:auto}
+.bar{flex:1 0 26px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px}
+.bar i{display:block;width:100%;background:var(--yellow);border-radius:3px 3px 0 0;min-height:2px}
+.bar b{font-size:12px;font-weight:600}
+.bar span{font-size:11px;color:var(--muted);white-space:nowrap}
+.hist .bar i{background:var(--red)}
+form{display:flex;gap:8px;flex-wrap:wrap;max-width:420px}
+input{flex:1 1 200px;font:inherit;padding:10px 12px;border:2px solid var(--ink);border-radius:4px;background:var(--paper);color:var(--ink)}
+button{font:inherit;font-weight:600;min-height:44px;padding:0 16px;border-radius:4px;border:2px solid var(--red);background:var(--red);color:#fff;cursor:pointer}
+button.ghost{background:transparent;border-color:var(--line);color:var(--muted)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+.err{color:var(--red);font-size:14px;min-height:20px;margin:6px 0 0}
+.empty{color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<main class="wrap" id="app"></main>
+<script>
+const SUPABASE_URL="https://pxlijgvcpfdftytwzjlc.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_3WUdceeXxeELNUVZmXXauQ_RAiXr0XD";
+const app=document.getElementById("app");let timer=0;
+const n=v=>(v==null?0:+v).toLocaleString("pl-PL");
+const pct=(a,b)=>b?Math.round(a*100/b)+"%":"–";
+function getPin(){try{return localStorage.getItem("geowood-pin")||""}catch(e){return""}}
+function setPin(p){try{p?localStorage.setItem("geowood-pin",p):localStorage.removeItem("geowood-pin")}catch(e){}}
+function login(msg){clearInterval(timer);
+app.innerHTML=`<header><h1><span>Geo</span>wood · statystyki</h1></header>
+<section class="card"><h2>Wpisz PIN do panelu</h2><form id="f"><label for="pin" class="k" style="flex-basis:100%">PIN ustawiony w Supabase</label>
+<input id="pin" type="password" autocomplete="current-password" required><button type="submit">Wejdź</button></form><p class="err" id="err">${msg||""}</p></section>`;
+document.getElementById("f").onsubmit=e=>{e.preventDefault();const p=document.getElementById("pin").value.trim();if(!p)return;setPin(p);load(true)}}
+async function load(first){
+const pin=getPin();if(!pin)return login();
+let d;try{const h={apikey:SUPABASE_ANON_KEY,"Content-Type":"application/json"};if(SUPABASE_ANON_KEY.startsWith("eyJ"))h.Authorization="Bearer "+SUPABASE_ANON_KEY;
+const r=await fetch(SUPABASE_URL+"/rest/v1/rpc/geo_stats",{method:"POST",headers:h,body:JSON.stringify({p_pin:pin})});
+if(!r.ok){const t=await r.text();if(t.includes("zly pin")){setPin("");return login("Zły PIN.")}throw new Error(r.status)}d=await r.json()}
+catch(e){if(first)return login("Nie udało się pobrać danych. Sprawdź, czy uruchomiłeś statystyki.sql w Supabase.");document.getElementById("upd").textContent="Błąd odświeżania, próbuję dalej…";return}
+render(d);if(first){clearInterval(timer);timer=setInterval(()=>load(false),15000)}}
+function bars(list,val,label,cls){if(!list.length)return`<p class="empty">Brak danych.</p>`;const mx=Math.max(1,...list.map(val));
+return`<div class="bars ${cls||""}">${list.map(x=>`<div class="bar"><b>${n(val(x))}</b><i style="height:${Math.max(2,val(x)/mx*140)}px"></i><span>${label(x)}</span></div>`).join("")}</div>`}
+function render(d){const t=d.dzis||{};
+const days=(d.dni||[]).map(x=>({...x,l:new Date(x.dzien+"T12:00:00").toLocaleDateString("pl-PL",{day:"numeric",month:"numeric"})}));
+const hb=[1,2,3,4,5].map(b=>{const f=(d.wyniki||[]).find(x=>x.b===b);return{b,c:f?f.c:0}});
+const labels=["0–20%","20–40%","40–60%","60–80%","80–100%"];
+app.innerHTML=`<header><h1><span>Geo</span>wood · statystyki</h1><span class="upd" id="upd" aria-live="polite">Odświeżono ${new Date().toLocaleTimeString("pl-PL")} · co 15 s</span></header>
+<section class="card live"><div class="dot" aria-hidden="true"></div><div><div class="k">Teraz na stronie</div><div class="big">${n(d.online)}</div><div class="sub">w tym ${n(d.online_gra)} w trakcie gry</div></div></section>
+<h2 style="margin-top:20px">Dzisiaj</h2>
+<div class="grid">
+<div class="card"><div class="k">Wejścia na stronę</div><div class="v">${n(t.otwarcia)}</div></div>
+<div class="card"><div class="k">Rozpoczęte gry</div><div class="v">${n(t.starty)}</div><div class="sub">${pct(t.starty,t.otwarcia)} wejść</div></div>
+<div class="card"><div class="k">Ukończone gry</div><div class="v">${n(t.ukonczone)}</div><div class="sub">${pct(t.ukonczone,t.starty)} rozpoczętych</div></div>
+<div class="card"><div class="k">Udostępnienia wyniku</div><div class="v">${n(t.udostepnienia)}</div><div class="sub">${pct(t.udostepnienia,t.ukonczone)} ukończonych</div></div>
+<div class="card"><div class="k">Wysłane wyzwania</div><div class="v">${n(t.wyzwania)}</div><div class="sub">${n(t.z_wyzwan)} osób weszło z wyzwania</div></div>
+<div class="card"><div class="k">Średni wynik</div><div class="v">${t.sredni_proc==null?"–":t.sredni_proc+"%"}</div><div class="sub">maksymalnej liczby punktów</div></div>
+</div>
+<div class="two">
+<section class="card"><h2>Ostatnie 14 dni: ukończone gry</h2>${bars(days,x=>x.ukonczone,x=>x.l)}</section>
+<section class="card"><h2>Wyniki dzisiaj</h2>${bars(hb,x=>x.c,x=>labels[x.b-1],"hist")}</section>
+</div>
+<p style="margin-top:16px"><button class="ghost" id="out">Wyloguj</button></p>`;
+document.getElementById("out").onclick=()=>{setPin("");login()}}
+load(true);
+</script>
+</body>
+</html>
